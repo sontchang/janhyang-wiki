@@ -193,7 +193,8 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
   function boot() {
     const C = window.JH_CONFIG || {};
     if (!window.supabase || !C.supabaseUrl || !C.supabaseAnonKey || /YOUR_/.test(C.supabaseUrl)) { $('#ideaList').innerHTML = '<p class="empty">건의 창구 준비 중입니다(운영자 설정 전).</p>'; $('#iSend').disabled = true; return; }
-    sb = window.supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: false } });
+    let base = String(C.supabaseUrl).trim(); try { base = new URL(base).origin; } catch (e) {} /* 주소 뒤에 /rest/v1 같은 경로가 붙어 있어도 앞부분만 쓴다 */
+    sb = window.supabase.createClient(base, String(C.supabaseAnonKey).trim(), { auth: { persistSession: false } });
     load(); setInterval(load, 60000); $('#iSend').disabled = !valid();
   }
   $('#iSend').addEventListener('click', async () => {
