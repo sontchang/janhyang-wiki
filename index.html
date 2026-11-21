@@ -5,133 +5,162 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="잔향 백과: 게임 개념을 분류별로 찾아보는 위키와 건의·질문 창구">
 <title>잔향 위키</title>
+<script>try { const t = localStorage.getItem('jh.theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap">
 <style>
-/* 백과사전 구조: 분류(왼쪽) → 항목 목록(가운데) → 항목 문서(오른쪽). 좁은 화면에서는 한 단씩 넘긴다. */
+/* 머리 줄(로고 / MAIN) + 저장소식 탭 메뉴 + 본문(항목 목록 · 문서). 내용이 가장 크게 보이도록 메뉴는 작게. */
 :root{
-  --bg:#0f0f10; --panel:#17171a; --well:#212125; --line:#303036; --fg:#f2f2f2; --fg2:#cfcfd4; --mute:#9d9da6; --red:#ff5b6c; --red-bg:#c8142a; --red-ink:#fff; --tint:rgba(255,91,108,.13);
-  --body:'IBM Plex Sans KR','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
-  --top:60px; color-scheme:dark;
+  --bg:#0f1012; --head:#16171a; --panel:#16171a; --well:#23242a; --line:#2e3036; --fg:#eceef1; --fg2:#c9ccd2; --mute:#8f939b; --red:#ff5b6c; --red-bg:#c8142a; --red-ink:#fff; --tint:rgba(255,91,108,.12);
+  --body:'IBM Plex Sans KR','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif; color-scheme:dark;
 }
-@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f6f6f5;--panel:#fff;--well:#efefed;--line:#dcdcd8;--fg:#141414;--fg2:#2e2e33;--mute:#62626a;--red:#b3102a;--red-bg:#c4122a;--tint:rgba(196,18,42,.08);color-scheme:light}}
-:root[data-theme="light"]{--bg:#f6f6f5;--panel:#fff;--well:#efefed;--line:#dcdcd8;--fg:#141414;--fg2:#2e2e33;--mute:#62626a;--red:#b3102a;--red-bg:#c4122a;--tint:rgba(196,18,42,.08);color-scheme:light}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#fff;--head:#f6f7f8;--panel:#fff;--well:#eff1f3;--line:#d8dce0;--fg:#1c1f23;--fg2:#3a3f46;--mute:#656b74;--red:#b3102a;--red-bg:#c4122a;--tint:rgba(196,18,42,.07);color-scheme:light}}
+:root[data-theme="light"]{--bg:#fff;--head:#f6f7f8;--panel:#fff;--well:#eff1f3;--line:#d8dce0;--fg:#1c1f23;--fg2:#3a3f46;--mute:#656b74;--red:#b3102a;--red-bg:#c4122a;--tint:rgba(196,18,42,.07);color-scheme:light}
 html,body{margin:0}*{box-sizing:border-box}[hidden]{display:none!important}
 body{background:var(--bg);color:var(--fg);font:15.5px/1.7 var(--body);-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:anywhere}
 a{color:inherit;text-decoration:none}
 :focus-visible{outline:2px solid var(--red);outline-offset:2px}
-svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.wrap{max-width:1240px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
 /* 머리 */
-.top{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
-.top-in{height:var(--top);display:flex;align-items:center;gap:14px;padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
-.brand{display:flex;align-items:baseline;gap:8px;white-space:nowrap}.brand b{font-size:17px}.brand small{color:var(--mute);font-size:13px}
-.search{flex:1;min-width:0;max-width:420px;margin-left:auto;position:relative}
-.search input{width:100%;height:40px;padding:0 12px 0 36px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font:inherit;font-size:15px;border-radius:8px}
-.search svg{position:absolute;left:11px;top:11px;color:var(--mute)}
-/* 세 단 */
-.shell{display:grid;grid-template-columns:232px 280px minmax(0,1fr);min-height:calc(100vh - var(--top))}
-.rail,.list{border-right:1px solid var(--line);position:sticky;top:var(--top);height:calc(100vh - var(--top));overflow-y:auto;padding:12px 10px 40px}
-.rail a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--fg2);font-size:15px}
-.rail a:hover{background:var(--well);color:var(--fg)}
-.rail a[aria-current="page"]{background:var(--fg);color:var(--bg);font-weight:600}
-.rail a .n{margin-left:auto;font-size:12.5px;color:var(--mute)}.rail a[aria-current="page"] .n{color:inherit;opacity:.7}
-.rail .grp{font-size:12px;color:var(--mute);padding:14px 10px 4px}
-.list .hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:4px 10px 10px;border-bottom:1px solid var(--line);margin-bottom:6px}
-.list .hd b{font-size:16px}.list .hd span{font-size:12.5px;color:var(--mute)}
-.list a{display:block;padding:7px 10px;border-radius:8px;color:var(--fg2)}
-.list a:hover{background:var(--well);color:var(--fg)}
-.list a[aria-current="page"]{background:var(--tint);color:var(--fg);font-weight:600;box-shadow:inset 3px 0 0 var(--red)}
-.list a small{display:block;color:var(--mute);font-size:12.5px;font-weight:400;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.list a .c{font-size:12px;color:var(--mute);font-weight:400}
-.list .empty{padding:8px 10px}
-.list a.back{display:none;color:var(--mute);font-size:14px}
-.pane{min-width:0;padding:28px clamp(16px,4vw,48px) 80px}
-.pane>div{max-width:760px}
-.shell.home .list{display:none}.shell.home{grid-template-columns:232px minmax(0,1fr)}
-/* 문서 */
-.crumb{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13.5px;color:var(--mute);margin-bottom:6px}
-.crumb a{color:var(--mute)}.crumb a:hover{color:var(--red)}
-h1{font-size:clamp(24px,3.4vw,30px);line-height:1.3;margin:0 0 10px}
-.sum{font-size:17px;line-height:1.7;margin:0 0 22px;padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--red);border-radius:0 8px 8px 0}
-.blk{margin:0 0 18px}.blk h2{font-size:16px;margin:0 0 6px}
+header{background:var(--head);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.bar{display:flex;align-items:center;gap:10px;height:56px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px;white-space:nowrap}
+.logo i{width:22px;height:22px;border-radius:6px;background:var(--red-bg);color:#fff;font:700 12px/22px var(--body);text-align:center;font-style:normal}
+.slash{color:var(--mute)}
+.main-link{font-weight:600;font-size:14px;letter-spacing:.04em;padding:2px 6px;border-radius:6px}
+.main-link:hover{background:var(--well)}
+.tools{margin-left:auto;display:flex;align-items:center;gap:8px;min-width:0;flex:1;justify-content:flex-end}
+.search{position:relative;flex:1;min-width:0;max-width:320px}
+.search input{width:100%;height:32px;padding:0 10px 0 30px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:14px;border-radius:6px}
+.search svg{position:absolute;left:9px;top:8px;color:var(--mute)}
+.icon-btn{width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--line);background:var(--bg);color:var(--fg2);border-radius:6px;cursor:pointer;flex:none}
+.icon-btn:hover{color:var(--fg);border-color:var(--mute)}
+.help{display:flex;gap:2px}
+.help a{display:flex;align-items:center;gap:5px;height:32px;padding:0 8px;border-radius:6px;font-size:13.5px;color:var(--fg2);white-space:nowrap}
+.help a:hover{background:var(--well);color:var(--fg)}.help a[aria-current="page"]{color:var(--fg);font-weight:600;box-shadow:inset 0 -2px 0 var(--red)}
+nav.tabs .narrow{display:none}
+/* 탭 메뉴 */
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-bottom:-1px}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs a{display:flex;align-items:center;gap:6px;padding:8px 8px 9px;font-size:14px;color:var(--fg2);white-space:nowrap;border-bottom:2px solid transparent}
+nav.tabs a:hover{color:var(--fg)}
+nav.tabs a:hover span:not(.cnt){background:var(--well);border-radius:6px}
+nav.tabs a[aria-current="page"]{color:var(--fg);font-weight:600;border-bottom-color:var(--red)}
+nav.tabs .cnt{font-size:12px;line-height:18px;padding:0 6px;border-radius:9px;background:var(--well);color:var(--fg2);font-weight:500}
+nav.tabs .sep{width:1px;background:var(--line);margin:8px 6px}
+/* 본문 */
+.body{display:grid;grid-template-columns:236px minmax(0,1fr);gap:36px;padding-top:24px;padding-bottom:80px}
+.body.wide{grid-template-columns:minmax(0,1fr)}
+details.side>summary{display:none}
+.side .hd{font-size:12.5px;font-weight:600;color:var(--mute);padding:0 10px 6px;display:flex;justify-content:space-between}
+.side a{display:block;padding:4px 10px;font-size:14px;color:var(--fg2);border-radius:6px;line-height:1.5;position:relative}
+.side a:hover{background:var(--well);color:var(--fg)}
+.side a[aria-current="page"]{background:var(--well);color:var(--fg);font-weight:600}
+.side a[aria-current="page"]::before{content:"";position:absolute;left:-8px;top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--red)}
+.side a .c{color:var(--mute);font-size:12px;font-weight:400}
+.side nav{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto;padding-left:8px}
+article{min-width:0;max-width:780px}
+.crumb{font-size:13px;color:var(--mute);margin-bottom:4px}.crumb a:hover{color:var(--red)}
+h1{font-size:26px;line-height:1.35;margin:0 0 6px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.sum{font-size:16.5px;color:var(--fg);margin:12px 0 18px}
+.blk{margin:0 0 16px}.blk h2{font-size:16px;margin:0 0 4px}
 .blk p{margin:0 0 8px;color:var(--fg2)}
-.blk ul,.blk ol{margin:0 0 8px;padding-left:22px;color:var(--fg2)}.blk li{margin:0 0 4px}
-dl.dl{margin:0 0 8px;display:grid;grid-template-columns:minmax(84px,max-content) minmax(0,1fr);border-top:1px solid var(--line)}
-dl.dl dt,dl.dl dd{margin:0;padding:7px 0;border-bottom:1px solid var(--line)}dl.dl dt{font-weight:600;padding-right:18px}dl.dl dd{color:var(--fg2)}
-.sec-t{font-size:14px;color:var(--mute);font-weight:600;margin:30px 0 8px}
-.rel{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
-.card{display:block;padding:10px 12px;border:1px solid var(--line);background:var(--panel);border-radius:8px}
-.card:hover{border-color:var(--red)}
-.card b{display:block;font-size:15px}.card small{display:block;color:var(--mute);font-size:13px;line-height:1.5}
-.pn{display:flex;justify-content:space-between;gap:10px;margin-top:28px;border-top:1px solid var(--line);padding-top:14px;font-size:14px}
+.blk ul,.blk ol{margin:0 0 8px;padding-left:22px;color:var(--fg2)}.blk li{margin:0 0 3px}
+dl.dl{margin:0 0 8px;display:grid;grid-template-columns:minmax(84px,max-content) minmax(0,1fr);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+dl.dl dt,dl.dl dd{margin:0;padding:6px 12px;border-top:1px solid var(--line)}
+dl.dl dt:first-of-type,dl.dl dt:first-of-type+dd{border-top:0}
+dl.dl dt{font-weight:600;background:var(--head)}dl.dl dd{color:var(--fg2)}
+.sec-t{font-size:14px;font-weight:600;margin:26px 0 6px}
+.rows{border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.rows a{display:flex;gap:10px;align-items:baseline;padding:7px 12px;border-top:1px solid var(--line);font-size:14.5px}
+.rows a:first-child{border-top:0}
+.rows a:hover{background:var(--head)}.rows a:hover b{color:var(--red)}
+.rows a svg{align-self:center;color:var(--mute)}
+.rows b{font-weight:600;white-space:nowrap}
+.rows small{color:var(--mute);font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.rows .n{color:var(--mute);font-size:12.5px;margin-left:auto;white-space:nowrap}
+.pn{display:flex;justify-content:space-between;gap:10px;margin-top:26px;border-top:1px solid var(--line);padding-top:12px;font-size:14px}
 .pn a{color:var(--fg2)}.pn a:hover{color:var(--red)}.pn small{display:block;color:var(--mute);font-size:12px}
 mark{background:var(--tint);color:inherit;border-radius:2px;box-shadow:0 0 0 1px var(--red)}
-/* 대문 */
-.notice{font-size:14px;color:var(--fg2);margin:0 0 4px}.meta{font-size:13px;color:var(--mute);margin:0 0 24px}
-.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
-.cats .card{display:flex;gap:12px;align-items:flex-start}.cats .card svg{margin-top:4px;color:var(--red)}
-.cats .card span{min-width:0}
-.feat{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
-.start{display:flex;gap:12px;align-items:center;padding:14px 16px;border:1px solid var(--red);background:var(--tint);border-radius:8px;margin-bottom:8px}
-.start b{display:block}.start small{color:var(--fg2)}
+/* MAIN */
+.home{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:36px}
+.home h1{border:0;padding:0}
+.lead{color:var(--fg2);margin:0 0 6px}
+.lead a,.about a{color:var(--red)}
+.about{font-size:14px;color:var(--fg2)}
+.about h2{font-size:15px;margin:0 0 8px}
+.about p{margin:0 0 10px}
+.about ul{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px}
+.about li{display:flex;gap:8px;align-items:center}.about li svg{color:var(--mute)}
+.about .tag{display:inline-block;font-size:12px;padding:0 8px;border-radius:9px;border:1px solid var(--line);color:var(--fg2)}
 /* 질문·기록 */
-.faq details{border-bottom:1px solid var(--line);padding:10px 0}.faq summary{cursor:pointer;font-weight:600}
+.faq details{border-bottom:1px solid var(--line);padding:9px 0}.faq summary{cursor:pointer;font-weight:600}
 .faq details p{margin:6px 0 0;color:var(--fg2)}.faq a{color:var(--red)}
 .log .row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;border-bottom:1px solid var(--line);padding:8px 0}
 .log .v{font-weight:600}.log .v small{display:block;color:var(--mute);font-weight:400;font-size:13px}.log ul{margin:0;padding-left:18px;color:var(--fg2)}
 /* 건의·질문 */
-.box{border:1px solid var(--line);background:var(--panel);padding:18px;display:grid;gap:14px;border-radius:8px}
+.box{border:1px solid var(--line);background:var(--panel);padding:16px;display:grid;gap:14px;border-radius:6px}
 .seg{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.chip{min-height:40px;padding:0 16px;border:1px solid var(--line);background:transparent;color:var(--fg2);font:inherit;font-size:15px;border-radius:999px;cursor:pointer}
+.chip{min-height:36px;padding:0 14px;border:1px solid var(--line);background:transparent;color:var(--fg2);font:inherit;font-size:14px;border-radius:999px;cursor:pointer}
 .chip[aria-pressed="true"]{border-color:var(--fg);color:var(--fg);background:var(--well);font-weight:600}
-label.f{display:grid;gap:4px;font-size:15px;font-weight:600}label.f small{font-weight:400;color:var(--mute)}
-label.f input,label.f textarea{font:inherit;font-weight:400;color:var(--fg);background:var(--bg);border:1px solid var(--line);padding:9px 11px;border-radius:6px;width:100%}
+label.f{display:grid;gap:4px;font-size:14.5px;font-weight:600}label.f small{font-weight:400;color:var(--mute)}
+label.f input,label.f textarea{font:inherit;font-weight:400;color:var(--fg);background:var(--bg);border:1px solid var(--line);padding:8px 10px;border-radius:6px;width:100%}
 label.f textarea{min-height:120px;resize:vertical}
-label.ck{display:flex;gap:10px;align-items:flex-start;font-size:15px;cursor:pointer}
-label.ck input{width:20px;height:20px;margin:3px 0 0;accent-color:var(--red-bg);flex:none}label.ck small{display:block;color:var(--mute);font-size:13.5px}
-.btn{min-height:44px;padding:0 20px;border:0;background:var(--red-bg);color:var(--red-ink);font:600 15px var(--body);border-radius:6px;cursor:pointer;justify-self:start}
+label.ck{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;cursor:pointer}
+label.ck input{width:18px;height:18px;margin:4px 0 0;accent-color:var(--red-bg);flex:none}label.ck small{display:block;color:var(--mute);font-size:13px}
+.btn{min-height:40px;padding:0 18px;border:0;background:var(--red-bg);color:var(--red-ink);font:600 14.5px var(--body);border-radius:6px;cursor:pointer;justify-self:start}
 .btn:disabled{opacity:.45;cursor:not-allowed}
-.hint{font-size:13.5px;color:var(--mute);margin:0}.status{font-size:15px;margin:0}
+.hint{font-size:13px;color:var(--mute);margin:0}.status{font-size:14.5px;margin:0}
 .filters{margin:18px 0 8px}
 .ideas{display:grid;gap:8px}
-.idea{border:1px solid var(--line);padding:12px 14px;background:var(--panel);display:grid;gap:4px;border-radius:8px}
+.idea{border:1px solid var(--line);padding:12px 14px;display:grid;gap:4px;border-radius:6px}
 .idea .hd{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--mute)}
-.idea .k,.idea .st,.idea .pv{font-size:12.5px;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--fg2)}
+.idea .k,.idea .st,.idea .pv{font-size:12px;font-weight:600;padding:0 8px;border-radius:9px;border:1px solid var(--line);color:var(--fg2)}
 .idea .st.done{background:var(--red-bg);border-color:var(--red-bg);color:var(--red-ink)}.idea .pv{border-color:var(--red);color:var(--red)}
-.idea b{font-size:16px}.idea p{margin:0;color:var(--fg2);white-space:pre-wrap}
-.idea .re{border-left:2px solid var(--red);padding-left:10px;margin-top:4px;font-size:15px}
-.empty{color:var(--mute);font-size:15px;margin:0}
-/* 좁은 화면: 한 번에 한 단 */
-@media (max-width:1060px){.shell{grid-template-columns:200px 240px minmax(0,1fr)}.shell.home{grid-template-columns:200px minmax(0,1fr)}}
-@media (max-width:860px){
-  .brand small{display:none}
-  .shell,.shell.home{display:block}
-  .rail{display:none}
-  .list,.rail{position:static;height:auto;border-right:0;padding:8px 6px 40px}
-  .shell[data-view="list"] .pane{display:none}
-  .shell[data-view="doc"] .list{display:none}
-  .pane{padding:18px 16px 60px}
-  .list a.back{display:block}
-  dl.dl{grid-template-columns:minmax(0,38%) minmax(0,1fr)}dl.dl dt{padding-right:12px}
+.idea b{font-size:15.5px}.idea p{margin:0;color:var(--fg2);white-space:pre-wrap}
+.idea .re{border-left:2px solid var(--red);padding-left:10px;margin-top:4px;font-size:14.5px}
+.empty{color:var(--mute);font-size:14.5px;margin:0}
+@media (max-width:900px){.home{grid-template-columns:minmax(0,1fr)}.about{border-top:1px solid var(--line);padding-top:16px}}
+@media (max-width:760px){
+  .body{grid-template-columns:minmax(0,1fr);gap:14px;padding-top:14px}
+  details.side{border:1px solid var(--line);border-radius:6px}
+  details.side>summary{display:block;cursor:pointer;padding:8px 12px;font-size:14px;font-weight:600}
+  .side nav{position:static;max-height:none;padding:0 8px 8px}
+  .side .hd{display:none}
+  .side a[aria-current="page"]::before{display:none}
+  .search{max-width:none}
+  .rows small{display:none}
+  dl.dl{grid-template-columns:minmax(0,38%) minmax(0,1fr)}
   .log .row{grid-template-columns:minmax(0,1fr);gap:2px}
 }
+@media (max-width:1280px) and (min-width:1001px){nav.tabs .cnt{display:none}}
+@media (max-width:1000px){.help{display:none}nav.tabs .narrow{display:flex}nav.tabs .sep.narrow{display:block}}
+@media (max-width:420px){.logo span{display:none}}
 </style>
 </head>
 <body>
-<header class="top"><div class="top-in">
-  <a class="brand" href="#/"><b>잔향 위키</b><small id="count"></small></a>
-  <label class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="q" type="search" placeholder="항목 찾기" aria-label="항목 찾기" autocomplete="off"></label>
-</div></header>
+<header>
+  <div class="wrap bar">
+    <a class="logo" href="#/" aria-label="잔향 위키 MAIN"><i aria-hidden="true">잔</i><span>잔향 위키</span></a>
+    <span class="slash" aria-hidden="true">/</span>
+    <a class="main-link" href="#/">MAIN</a>
+    <div class="tools">
+      <label class="search"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="q" type="search" placeholder="항목 찾기" aria-label="항목 찾기" autocomplete="off"></label>
+      <nav class="help" id="help" aria-label="도움"></nav>
+      <button class="icon-btn" id="theme" type="button"></button>
+    </div>
+  </div>
+  <div class="wrap"><nav class="tabs" id="tabs" aria-label="분류"></nav></div>
+</header>
 
-<div class="shell" id="shell">
-  <nav class="rail" id="rail" aria-label="분류"></nav>
-  <nav class="list" id="list" aria-label="항목 목록"></nav>
-  <main class="pane" id="pane">
+<div class="wrap body" id="body">
+  <details class="side" id="side" open><summary id="sideSum"></summary><nav id="list" aria-label="항목 목록"></nav></details>
+  <main id="pane">
     <div id="art"><p class="empty">불러오는 중입니다…</p></div>
     <div id="desk" hidden>
-      <div class="crumb"><a href="#/">대문</a> ›</div>
       <h1>건의·질문</h1>
       <p class="sum">로그인 없이 남길 수 있습니다. 운영진이 확인하면 상태가 바뀌고 답변이 달립니다.</p>
       <div class="box">
@@ -158,26 +187,37 @@ label.ck input{width:20px;height:20px;margin:3px 0 0;accent-color:var(--red-bg);
     book: '<path d="M5 4h11a3 3 0 0 1 3 3v14H8a3 3 0 0 1-3-3z"/><path d="M5 18a3 3 0 0 1 3-3h11"/>',
     globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>',
     map: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
-    skull: '<path d="M12 3a8 8 0 0 0-5 14.2V21h10v-3.8A8 8 0 0 0 12 3z"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><path d="M10 21v-3M14 21v-3"/>',
+    skull: '<path d="M12 3a8 8 0 0 0-5 14.2V21h10v-3.8A8 8 0 0 0 12 3z"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/>',
     shield: '<path d="M12 3 5 6v6c0 4 3 7.5 7 9 4-1.5 7-5 7-9V6z"/>',
     up: '<path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
     calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
     coins: '<circle cx="9" cy="9" r="6"/><path d="M15.4 9.6A6 6 0 1 1 9.6 15.4"/>',
-    building: '<path d="M4 21V5l8-3v19M12 8h8v13M3 21h18"/><path d="M8 8h.01M8 12h.01M8 16h.01M16 12h.01M16 16h.01"/>',
+    building: '<path d="M4 21V5l8-3v19M12 8h8v13M3 21h18"/>',
     chat: '<path d="M4 5h16v11H9l-5 4z"/>',
     help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/>',
     history: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
-    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'
+    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    doc: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'
   };
   const ic = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[n] || ''}</svg>`;
+
+  /* 화면 밝기: 저장한 값이 없으면 기기 설정을 따른다 */
+  const mq = matchMedia('(prefers-color-scheme: light)');
+  const isLight = () => (document.documentElement.dataset.theme || (mq.matches ? 'light' : 'dark')) === 'light';
+  const paintTheme = () => { const l = isLight(); $('#theme').innerHTML = ic(l ? 'moon' : 'sun'); $('#theme').setAttribute('aria-label', l ? '어두운 화면으로' : '밝은 화면으로'); $('#theme').title = l ? '어두운 화면으로' : '밝은 화면으로'; };
+  $('#theme').addEventListener('click', () => { const t = isLight() ? 'dark' : 'light'; document.documentElement.dataset.theme = t; try { localStorage.setItem('jh.theme', t); } catch (e) {} paintTheme(); });
+  mq.addEventListener && mq.addEventListener('change', paintTheme); paintTheme();
+
   let W = null, BY = {}, q = '';
   const hl = t => { const e = esc(t); if (!q) return e; const k = esc(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return e.replace(new RegExp(k, 'gi'), m => `<mark>${m}</mark>`); };
   const catOf = id => W.cats.find(c => c.id === id);
   const inCat = id => W.entries.filter(x => x.cat === id);
   const link = x => `#/e/${x.id}`;
-  const card = x => `<a class="card" href="${link(x)}"><b>${esc(x.t)}</b><small>${esc(x.s)}</small></a>`;
+  const row = (x, right) => `<a href="${link(x)}">${ic('doc')}<b>${esc(x.t)}</b><small>${esc(x.s)}</small>${right ? `<span class="n">${esc(right)}</span>` : ''}</a>`;
+  const narrow = matchMedia('(max-width:760px)');
 
-  /* 검색: 제목·다른 이름이 맞으면 먼저, 그다음 요약, 그다음 본문 */
   function search(s) {
     const k = s.toLowerCase(), r = [];
     W.entries.forEach(x => { const t = x.t.toLowerCase(), al = x.k.join(' ').toLowerCase();
@@ -187,18 +227,25 @@ label.ck input{width:20px;height:20px;margin:3px 0 0;accent-color:var(--red-bg);
   }
   function route() { const h = location.hash.replace(/^#\/?/, '').split('/'); return { v: h[0] || 'home', id: h[1] ? decodeURIComponent(h[1]) : '' }; }
 
-  function rail(r, curCat) {
-    const a = (href, icon, name, n, on) => `<a href="${href}"${on ? ' aria-current="page"' : ''}>${ic(icon)}<span>${esc(name)}</span>${n != null ? `<span class="n">${n}</span>` : ''}</a>`;
-    $('#rail').innerHTML = a('#/', 'home', '대문', null, r.v === 'home' && !q) + '<div class="grp">분류</div>' +
+  function tabs(r, curCat) {
+    const a = (href, icon, name, n, on, cls) => `<a href="${href}"${cls ? ` class="${cls}"` : ''}${on ? ' aria-current="page"' : ''}>${ic(icon)}<span>${esc(name)}</span>${n != null ? `<span class="cnt">${n}</span>` : ''}</a>`;
+    const H = [['#/faq', 'help', '자주 묻는 질문', 'faq'], ['#/log', 'history', '업데이트', 'log'], ['#/ask', 'mail', '건의·질문', 'ask']];
+    $('#tabs').innerHTML = a('#/', 'home', 'MAIN', null, r.v === 'home' && !q) +
       W.cats.map(c => a(`#/c/${c.id}`, c.icon, c.name, inCat(c.id).length, curCat === c.id && !q)).join('') +
-      '<div class="grp">도움</div>' + a('#/faq', 'help', '자주 묻는 질문', W.faq.length, r.v === 'faq') + a('#/log', 'history', '업데이트 내역', null, r.v === 'log') + a('#/ask', 'mail', '건의·질문', null, r.v === 'ask');
+      '<span class="sep narrow" aria-hidden="true"></span>' + H.map(([h, i, n, v]) => a(h, i, n, null, r.v === v, 'narrow')).join('');
+    $('#help').innerHTML = H.map(([h, i, n, v]) => a(h, i, n, null, r.v === v)).join('');
+    const cur = $('#tabs a[aria-current]'); if (cur) { const n = $('#tabs'); const l = cur.offsetLeft - n.offsetLeft; if (l < n.scrollLeft || l + cur.offsetWidth > n.scrollLeft + n.clientWidth) n.scrollLeft = l - 16; }
   }
-  function list(r, curCat) {
-    let head, items;
-    if (q) { items = search(q); head = `<div class="hd"><b>'${esc(q)}' 찾기</b><span>${items.length}개</span></div>`; }
-    else if (curCat) { const c = catOf(curCat); items = inCat(curCat); head = `<div class="hd"><b>${esc(c.name)}</b><span>${items.length}개</span></div>`; }
-    else { $('#list').innerHTML = ''; return; }
-    $('#list').innerHTML = '<a class="back" href="#/">‹ 대문</a>' + head + (items.length ? items.map(x => `<a href="${link(x)}"${r.v === 'e' && r.id === x.id ? ' aria-current="page"' : ''}>${hl(x.t)}${q ? ` <span class="c">· ${esc(catOf(x.cat).name)}</span>` : ''}<small>${hl(x.s)}</small></a>`).join('') : '<p class="empty">맞는 항목이 없습니다. 다른 낱말로 찾거나 건의·질문에 남겨 주세요.</p>');
+  function side(r, curCat) {
+    let head, items, label;
+    if (q) { items = search(q); head = `'${esc(q)}' 찾기`; label = `찾은 항목 ${items.length}개`; }
+    else if (curCat) { const c = catOf(curCat); items = inCat(curCat); head = esc(c.name); label = `${c.name} 항목 ${items.length}개`; }
+    else return false;
+    $('#sideSum').textContent = label;
+    $('#list').innerHTML = `<div class="hd"><span>${head}</span><span>${items.length}</span></div>` + (items.length ? items.map(x => `<a href="${link(x)}"${r.v === 'e' && r.id === x.id ? ' aria-current="page"' : ''}>${hl(x.t)}${q ? ` <span class="c">${esc(catOf(x.cat).name)}</span>` : ''}</a>`).join('') : '<p class="empty" style="padding:0 10px">맞는 항목이 없습니다.</p>');
+    /* 좁은 화면: 항목을 읽을 때는 목록을 접어 둔다 */
+    $('#side').open = !narrow.matches || r.v !== 'e';
+    return true;
   }
   function block(b) {
     const part = { p: v => v.map(x => `<p>${hl(x)}</p>`).join(''), steps: v => `<ol>${v.map(x => `<li>${hl(x)}</li>`).join('')}</ol>`, list: v => `<ul>${v.map(x => `<li>${hl(x)}</li>`).join('')}</ul>`, dl: v => `<dl class="dl">${v.map(([k, d]) => `<dt>${hl(k)}</dt><dd>${hl(d)}</dd>`).join('')}</dl>` };
@@ -207,44 +254,43 @@ label.ck input{width:20px;height:20px;margin:3px 0 0;accent-color:var(--red-bg);
   function entry(x) {
     const c = catOf(x.cat), sib = inCat(x.cat), i = sib.indexOf(x), pv = sib[i - 1], nx = sib[i + 1];
     const rel = x.rel.map(id => BY[id]).filter(Boolean), back = W.entries.filter(y => y.rel.includes(x.id) && !x.rel.includes(y.id)).slice(0, 4);
-    return `<div class="crumb"><a href="#/">대문</a> › <a href="#/c/${c.id}">${esc(c.name)}</a></div><h1>${hl(x.t)}</h1><p class="sum">${hl(x.s)}</p>${x.b.map(block).join('')}` +
-      (rel.length || back.length ? `<p class="sec-t">관련 항목</p><div class="rel">${rel.concat(back).map(card).join('')}</div>` : '') +
+    return `<p class="crumb"><a href="#/c/${c.id}">${esc(c.name)}</a></p><h1>${hl(x.t)}</h1><p class="sum">${hl(x.s)}</p>${x.b.map(block).join('')}` +
+      (rel.length || back.length ? `<p class="sec-t">관련 항목</p><div class="rows">${rel.concat(back).map(y => row(y, y.cat !== x.cat ? catOf(y.cat).name : '')).join('')}</div>` : '') +
       `<div class="pn">${pv ? `<a href="${link(pv)}"><small>이전</small>${esc(pv.t)}</a>` : '<span></span>'}${nx ? `<a href="${link(nx)}" style="text-align:right"><small>다음</small>${esc(nx.t)}</a>` : ''}</div>`;
   }
   function home() {
-    return `<h1>잔향 백과</h1><p class="notice">${esc(W.notice)}</p><p class="meta">항목 ${W.entries.length}개 · 게임 ${esc(W.game)} 기준 · ${esc(W.updated)} 갱신</p>` +
-      `<a class="start" href="#/e/first30">${ic('book')}<span><b>처음이라면: 처음 30분</b><small>등록부터 첫 보스까지 순서대로</small></span></a>` +
-      `<p class="sec-t">자주 찾는 항목</p><div class="feat">${W.featured.map(id => card(BY[id])).join('')}</div>` +
-      `<p class="sec-t">분류별로 찾기</p><div class="cats">${W.cats.map(c => `<a class="card" href="#/c/${c.id}">${ic(c.icon)}<span><b>${esc(c.name)} <small style="display:inline">${inCat(c.id).length}</small></b><small>${esc(c.desc)}</small></span></a>`).join('')}</div>` +
-      `<p class="sec-t">도움</p><div class="cats"><a class="card" href="#/faq">${ic('help')}<span><b>자주 묻는 질문</b><small>막혔을 때 먼저 볼 곳</small></span></a><a class="card" href="#/log">${ic('history')}<span><b>업데이트 내역</b><small>버전별 바뀐 점</small></span></a><a class="card" href="#/ask">${ic('mail')}<span><b>건의·질문</b><small>운영진에게 남기기</small></span></a></div>`;
+    return `<div class="home"><div><h1>잔향 백과</h1><p class="lead">게임을 하다 모르는 개념이 나오면 위 분류 탭이나 검색으로 찾아보세요. 처음이라면 <a href="#/e/first30">처음 30분</a>부터 보면 됩니다.</p>` +
+      `<p class="sec-t">자주 찾는 항목</p><div class="rows">${W.featured.map(id => row(BY[id], catOf(BY[id].cat).name)).join('')}</div>` +
+      `<p class="sec-t">분류</p><div class="rows">${W.cats.map(c => `<a href="#/c/${c.id}">${ic(c.icon)}<b>${esc(c.name)}</b><small>${esc(c.desc)}</small><span class="n">${inCat(c.id).length}</span></a>`).join('')}</div></div>` +
+      `<aside class="about"><h2>정보</h2><p>${esc(W.notice)}</p><ul><li>${ic('doc')}항목 ${W.entries.length}개</li><li>${ic('history')}${esc(W.updated)} 갱신</li><li>${ic('book')}<span class="tag">게임 ${esc(W.game)}</span></li></ul>` +
+      `<h2>도움</h2><ul><li>${ic('help')}<a href="#/faq">자주 묻는 질문</a></li><li>${ic('history')}<a href="#/log">업데이트 내역</a></li><li>${ic('mail')}<a href="#/ask">건의·질문 남기기</a></li></ul></aside></div>`;
   }
-  function catPage(c) {
-    return `<div class="crumb"><a href="#/">대문</a> ›</div><h1>${esc(c.name)}</h1><p class="sum">${esc(c.desc)}</p><div class="rel">${inCat(c.id).map(card).join('')}</div>`;
-  }
+  function catPage(c) { return `<h1>${esc(c.name)}</h1><p class="sum">${esc(c.desc)}</p><div class="rows">${inCat(c.id).map(x => row(x)).join('')}</div>`; }
   function render() {
     if (!W) return;
-    const r = route(), shell = $('#shell');
-    let curCat = r.v === 'c' ? r.id : r.v === 'e' && BY[r.id] ? BY[r.id].cat : '';
-    rail(r, curCat); list(r, curCat);
-    const isHome = !q && !curCat; shell.classList.toggle('home', isHome);
-    /* 좁은 화면: 검색 중이거나 분류를 고르면 목록, 항목·도움 화면이면 문서 */
-    shell.dataset.view = (q && r.v !== 'e') || r.v === 'c' ? 'list' : 'doc';
+    const r = route();
+    const curCat = r.v === 'c' ? r.id : r.v === 'e' && BY[r.id] ? BY[r.id].cat : '';
+    tabs(r, curCat);
+    const hasSide = side(r, curCat);
+    $('#side').hidden = !hasSide; $('#body').classList.toggle('wide', !hasSide);
     $('#desk').hidden = r.v !== 'ask'; $('#art').hidden = r.v === 'ask';
     let html = '', title = '잔향 위키';
     if (r.v === 'e' && BY[r.id]) { html = entry(BY[r.id]); title = BY[r.id].t + ' · 잔향 위키'; }
     else if (r.v === 'c' && catOf(r.id)) { html = catPage(catOf(r.id)); title = catOf(r.id).name + ' · 잔향 위키'; }
-    else if (r.v === 'faq') { title = '자주 묻는 질문 · 잔향 위키'; html = `<div class="crumb"><a href="#/">대문</a> ›</div><h1>자주 묻는 질문</h1><div class="faq">${W.faq.map(([a, b, id]) => `<details><summary>${esc(a)}</summary><p>${esc(b)}${id && BY[id] ? ` <a href="${link(BY[id])}">${esc(BY[id].t)} 항목 보기 ›</a>` : id === null ? ' <a href="#/ask">건의·질문 ›</a>' : ''}</p></details>`).join('')}</div>`; }
-    else if (r.v === 'log') { title = '업데이트 내역 · 잔향 위키'; html = `<div class="crumb"><a href="#/">대문</a> ›</div><h1>업데이트 내역</h1><div class="log">${W.log.map(c => `<div class="row"><div class="v">${esc(c.v)}<small>${esc(c.date)}</small></div><ul>${c.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}</div>`; }
+    else if (q) html = `<h1>'${esc(q)}' 찾기</h1><p class="sum">${search(q).length}개 항목이 맞습니다.</p><div class="rows">${search(q).map(x => row(x, catOf(x.cat).name)).join('')}</div>`;
+    else if (r.v === 'faq') { title = '자주 묻는 질문 · 잔향 위키'; html = `<h1>자주 묻는 질문</h1><div class="faq">${W.faq.map(([a, b, id]) => `<details><summary>${esc(a)}</summary><p>${esc(b)}${id && BY[id] ? ` <a href="${link(BY[id])}">${esc(BY[id].t)} 항목 보기 ›</a>` : id === null ? ' <a href="#/ask">건의·질문 ›</a>' : ''}</p></details>`).join('')}</div>`; }
+    else if (r.v === 'log') { title = '업데이트 내역 · 잔향 위키'; html = `<h1>업데이트 내역</h1><div class="log">${W.log.map(c => `<div class="row"><div class="v">${esc(c.v)}<small>${esc(c.date)}</small></div><ul>${c.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}</div>`; }
     else if (r.v === 'ask') title = '건의·질문 · 잔향 위키';
     else html = home();
     $('#art').innerHTML = html; document.title = title;
-    const cur = document.querySelector('#list a[aria-current]'); if (cur) cur.scrollIntoView({ block: 'nearest' });
   }
   let lastHash = '';
   window.addEventListener('hashchange', () => { if (location.hash !== lastHash) { lastHash = location.hash; if (q && route().v !== 'e') { q = ''; $('#q').value = ''; } render(); scrollTo(0, 0); } });
   let qt = 0; $('#q').addEventListener('input', e => { clearTimeout(qt); qt = setTimeout(() => { q = e.target.value.trim().slice(0, 30); render(); }, 120); });
   $('#q').addEventListener('keydown', e => { if (e.key === 'Enter' && q) { const f = search(q)[0]; if (f) location.hash = link(f); } if (e.key === 'Escape') { e.target.value = ''; q = ''; render(); } });
-  fetch('wiki.json', { cache: 'no-store' }).then(r => r.json()).then(d => { W = d; d.entries.forEach(x => { BY[x.id] = x; }); $('#count').textContent = `항목 ${d.entries.length}`; lastHash = location.hash; render(); })
+  document.addEventListener('keydown', e => { if (e.key === '/' && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); $('#q').focus(); } });
+  narrow.addEventListener && narrow.addEventListener('change', render);
+  fetch('wiki.json', { cache: 'no-store' }).then(r => r.json()).then(d => { W = d; d.entries.forEach(x => { BY[x.id] = x; }); lastHash = location.hash; render(); })
     .catch(() => { $('#art').innerHTML = '<p class="empty">위키 내용을 불러오지 못했습니다. 잠시 뒤 새로 고침해 주세요.</p>'; });
 
   /* ===== 건의·질문 창구(로그인 없음, Supabase 표 ideas · supabase.sql)
